@@ -13,6 +13,9 @@ export default function Sidebar() {
         <Link href="/dashboard/turnos" className="flex items-center gap-2 hover:text-blue-600">
           <Calendar size={18} /> Turnos
         </Link>
+        <Link href={"/dashboard/notificaciones"}>
+          notificaciones
+        </Link>
       </nav>
     </aside>
   );
