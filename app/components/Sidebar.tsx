@@ -1,5 +1,5 @@
 "use client";
-import { HomeIcon, Calendar, } from "lucide-react";
+import { HomeIcon, Calendar, Bell, } from "lucide-react";
 import Link from "next/link";
 
 export default function Sidebar() {
@@ -13,8 +13,8 @@ export default function Sidebar() {
         <Link href="/dashboard/turnos" className="flex items-center gap-2 hover:text-blue-600">
           <Calendar size={18} /> Turnos
         </Link>
-        <Link href={"/dashboard/notificaciones"}>
-          notificaciones
+        <Link href={"/dashboard/notificaciones"} className="flex items-center gap-2 hover:text-blue-600">
+          <Bell size={18} /> Notificaciones
         </Link>
       </nav>
     </aside>
