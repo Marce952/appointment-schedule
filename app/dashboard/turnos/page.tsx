@@ -10,7 +10,7 @@ const page = () => {
 
   const getEvents = async () => {
     try {
-      const response = await axios.get('/pages/api/calendar') // ruta correcta del API
+      const response = await axios.get('/api/calendar') // ruta correcta del API
       const data = response.data || []
 
       const mapped = data.map((ev: any) => ({
