@@ -8,24 +8,125 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model users {
-  id       Int     @id @default(autoincrement())
-  email    String  @unique @db.VarChar(255)
-  password String  @db.VarChar(255)
+model Business {
+  id        Int          @id @default(autoincrement())
+  name      String
+  type      BusinessType
+  address   String?
+  phone     String?
+  email     String?
+  website   String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  users        User[]
+  clients      Client[]
+  services     Service[]
+  appointments Appointment[]
+  pets         Pet[]
 }
 
-model turnos {
-  id               Int            @id @default(autoincrement())
-  nombre           String?        @db.VarChar(30)
-  telefono         String?        @db.VarChar(15)
-  fecha_solicitada DateTime?      @db.Date
-  hora_solicitada  DateTime?      @db.Time(6)
-  estado           estado_pedido?
-  motivo           String?
+enum BusinessType {
+  peluqueria
+  veterinaria
+  nutricionista
+  doctor
+  estetica
+  odontologia
+  masajista
+  fisioterapia
+  psicologia
+  otro
 }
 
-enum estado_pedido {
-  pendiente
-  aceptado
-  rechazado
+model User {
+  id         Int      @id @default(autoincrement())
+  businessId Int
+  email      String   @unique
+  password   String
+  name       String
+  role       UserRole @default(employee)
+  phone      String?
+  createdAt  DateTime @default(now())
+
+  business     Business      @relation(fields: [businessId], references: [id])
+  appointments Appointment[]
+}
+
+enum UserRole {
+  owner
+  admin
+  employee
+}
+
+model Client {
+  id         Int       @id @default(autoincrement())
+  businessId Int
+  name       String
+  phone      String
+  email      String
+  date       DateTime?
+  notes      String?
+  createdAt  DateTime  @default(now())
+
+  business     Business      @relation(fields: [businessId], references: [id])
+  appointments Appointment[]
+  pets         Pet[]
+}
+
+model Pet {
+  id         Int     @id @default(autoincrement())
+  businessId Int
+  clientId   Int
+  name       String
+  species    String // perro, gato, etc.
+  breed      String?
+  age        Int?
+  notes      String?
+
+  business     Business      @relation(fields: [businessId], references: [id])
+  client       Client        @relation(fields: [clientId], references: [id])
+  appointments Appointment[]
+}
+
+model Service {
+  id          Int      @id @default(autoincrement())
+  businessId  Int
+  name        String
+  description String?
+  duration    Int // minutos
+  price       Decimal?
+
+  business     Business      @relation(fields: [businessId], references: [id])
+  appointments Appointment[]
+}
+
+model Appointment {
+  id         Int  @id @default(autoincrement())
+  businessId Int
+  clientId   Int
+  serviceId  Int
+  userId     Int? // empleado asignado
+  petId      Int?
+
+  date                  DateTime
+  status                AppointmentStatus @default(PENDING)
+  note                  String?
+  googleCalendarEventId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id])
+  client   Client   @relation(fields: [clientId], references: [id])
+  service  Service  @relation(fields: [serviceId], references: [id])
+  user     User?    @relation(fields: [userId], references: [id])
+  pet      Pet?     @relation(fields: [petId], references: [id])
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  DONE
 }
