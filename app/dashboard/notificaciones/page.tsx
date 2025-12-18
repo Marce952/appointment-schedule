@@ -1,17 +1,33 @@
 'use client'
 import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, useDisclosure } from '@heroui/react'
+import axios from 'axios'
 import { Check, X } from 'lucide-react'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 const page = () => {
   const [modalContent, setModalContent] = useState<{ title: string; date: string; note: string } | null>(null)
   const { isOpen, onOpen, onClose, onOpenChange } = useDisclosure();
+  const [date, setDate] = useState<[] | null>(null)
+
+  const getDate = async () => {
+    try {
+      const res = await axios.get('/api/appointment')
+      setDate(res.data)
+    } catch (error) {
+      console.log("🚀 ~ getDate ~ error:", error)
+    }
+  }
+
+  useEffect(() => {
+    getDate()
+  }, [])
 
   const handleModal = (item: { title: string; date: string; note: string }) => {
     setModalContent(item);
     onOpen();
   }
 
+  // Datos de ejemplo
   const turnos = [
     { name: "Marcelo Garrido", pet: "Rocco", date: "10/12/25 15:30", note: "Mi mascota no come..." },
     { name: "Luz Garrido", pet: "Kitty", date: "15/12/25 15:30", note: "Mi mascota mea computadoras..." }
@@ -43,7 +59,7 @@ const page = () => {
       </Modal>
       <div>
         {
-          turnos.map((item, index) => (
+          turnos?.map((item, index) => (
             <div
               key={index}
               onClick={() => handleModal({ title: `👨 ${item.name} | 🐶 ${item.pet}`, date: item.date, note: item.note })}
