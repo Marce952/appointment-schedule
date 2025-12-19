@@ -2,53 +2,70 @@
 @plugin '../hero.ts';
 @source '../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
 
+@layer base {
+  :root {
+    /* Formato: R G B */
+    --color-primary: 142 134 251;
+    /* El púrpura de tu diseño */
+    --color-secondary: 133 209 238;
+    /* El celeste de tu diseño */
+    --color-background: 255 255 255;
+  }
+
+  /* Ejemplo de modo oscuro usando las mismas variables */
+  [data-theme='dark'] {
+    --color-primary: 172 150 249;
+    --color-background: 18 18 18;
+  }
+}
+
 .carousel-two {
-    width: 100%;
-    height: 100%;
+  width: 100%;
+  height: 100%;
 }
 
 
 .carousel-small {
-    animation: smallToLarge 4s ease-in-out infinite;
+  animation: smallToLarge 4s ease-in-out infinite;
 }
 
 
 .carousel-large {
-    animation: largeExit 4s ease-in-out infinite;
+  animation: largeExit 4s ease-in-out infinite;
 }
 
 
 @keyframes smallToLarge {
-    0% {
-        transform: translateX(0) scale(1);
-        opacity: 0.8;
-    }
+  0% {
+    transform: translateX(0) scale(1);
+    opacity: 0.8;
+  }
 
-    50% {
-        transform: translateX(208px) scale(1.15);
-        opacity: 1;
-    }
+  50% {
+    transform: translateX(208px) scale(1.15);
+    opacity: 1;
+  }
 
-    100% {
-        transform: translateX(208px) scale(1.15);
-        opacity: 1;
-    }
+  100% {
+    transform: translateX(208px) scale(1.15);
+    opacity: 1;
+  }
 }
 
 
 @keyframes largeExit {
-    0% {
-        transform: translateX(0);
-        opacity: 1;
-    }
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
 
-    50% {
-        transform: translateX(208px);
-        opacity: 0;
-    }
+  50% {
+    transform: translateX(208px);
+    opacity: 0;
+  }
 
-    100% {
-        transform: translateX(208px);
-        opacity: 0;
-    }
+  100% {
+    transform: translateX(208px);
+    opacity: 0;
+  }
 }
