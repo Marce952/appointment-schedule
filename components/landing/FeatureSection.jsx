@@ -97,9 +97,6 @@ const FeatureSection = () => {
             <h2 className="text-3xl font-bold">
               Nos adaptamos a tu negocio!
             </h2>
-            <h3 className="text-xl font-bold">
-              Citas para todo tipo de servicios
-            </h3>
             <div className='w-14 h-2 rounded-2xl bg-blue-500 mb-4'></div>
             <p className="text-gray-500 mb-6">
               Peluqueria,

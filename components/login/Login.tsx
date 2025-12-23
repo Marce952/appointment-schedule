@@ -1,8 +1,11 @@
 'use client'
+import { signIn } from "next-auth/react";
 import React, { useState } from "react";
 import { Input, Button, Checkbox, Link, Divider, Progress, Select, SelectItem, Chip } from "@heroui/react";
-import { Ghost, Eye, EyeOff, Facebook, Mail, Twitter, ArrowBigRightDash, ArrowBigLeftDash, PlusIcon } from "lucide-react";
-import { div } from "framer-motion/client";
+import { Ghost, Eye, EyeOff, Facebook, Mail, Twitter, ArrowBigRightDash, ArrowBigLeftDash, PlusIcon, Phone } from "lucide-react";
+import { div, em } from "framer-motion/client";
+import axios from "axios";
+import { useRouter } from "next/navigation";
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -10,6 +13,24 @@ const Login = () => {
   const [step, setStep] = useState(1);
   const [services, setServices] = useState<any[]>([]);
   const [tempService, setTempService] = useState({ name: '', duration: '', price: '' });
+  const [registerBusiness, setRegisterBusiness] = useState({
+    name: '',
+    type: '',
+    address: '',
+    phone: '',
+    email: '',
+    website: '',
+  })
+  const [registerUser, setRegisterUser] = useState({
+    businessId: 0,
+    email: '',
+    password: '',
+    name: '',
+    role: 'ADMIN',
+    phone: '',
+  })
+
+  const router = useRouter();
 
   // 2. Función para añadir a la lista
   const addService = () => {
@@ -20,7 +41,7 @@ const Login = () => {
 
   const businessType = [
     { key: "peluqueria", label: "peluqueria" },
-    { key: "veterianria", label: "veterianria" },
+    { key: "veterinaria", label: "veterinaria" },
     { key: "nutricionista", label: "nutricionista" },
     { key: "doctor", label: "doctor" },
     { key: "estetica", label: "estetica" },
@@ -36,22 +57,62 @@ const Login = () => {
       case 1: return (
         <div>
           <div className="flex gap-4">
-            <Input label="Nombre de tu negocio" variant="underlined" className="flex-1" />
+            <Input
+              label="Nombre de tu negocio"
+              variant="underlined"
+              className="flex-1"
+              value={registerBusiness.name}
+              onChange={(e) => setRegisterBusiness({ ...registerBusiness, name: e.target.value })}
+            />
 
-            <Select className="flex-1" label="Select an animal">
+            <Select
+              className="flex-1"
+              label="Tipo de negocio"
+              variant="underlined"
+              selectedKeys={registerBusiness.type ? [registerBusiness.type] : []}
+              onChange={(e) => setRegisterBusiness({ ...registerBusiness, type: e.target.value })}
+            >
               {businessType.map((business) => (
                 <SelectItem key={business.key}>{business.label.charAt(0).toUpperCase() + business.label.slice(1)}</SelectItem>
               ))}
             </Select>
           </div>
 
-          <Input label="Direccion" type="text" variant="underlined" />
-          <Input label="Telefono" type="text" variant="underlined" />
-          <Input label="Email" type="text" variant="underlined" />
-          <Input label="Pagina" type="text" variant="underlined" />
+          <Input
+            label="Direccion"
+            type="text"
+            variant="underlined"
+            value={registerBusiness.address}
+            onChange={(e) => setRegisterBusiness({ ...registerBusiness, address: e.target.value })}
+          />
+          <Input
+            label="Telefono"
+            type="text"
+            variant="underlined"
+            value={registerBusiness.phone}
+            onChange={(e) => setRegisterBusiness({ ...registerBusiness, phone: e.target.value })}
+          />
+          <Input
+            label="Email"
+            type="email"
+            variant="underlined"
+            value={registerBusiness.email}
+            onChange={(e) => setRegisterBusiness({ ...registerBusiness, email: e.target.value })}
+          />
+          <Input
+            label="Pagina"
+            type="text"
+            variant="underlined"
+            value={registerBusiness.website}
+            onChange={(e) => setRegisterBusiness({ ...registerBusiness, website: e.target.value })}
+          />
 
           <div className="flex justify-end">
-            <Button className="mt-6 bg-blue-700 hover:bg-blue-500 text-white font-bold rounded-full py-6 shadow-lg shadow-purple-200" onPress={() => setStep(step + 1)}>
+            <Button
+              type="button"
+              className="mt-6 bg-blue-700 hover:bg-blue-500 text-white font-bold rounded-full py-6 shadow-lg shadow-purple-200"
+              onPress={() => setStep(step + 1)}
+            >
               <ArrowBigRightDash />
             </Button>
           </div>
@@ -105,10 +166,10 @@ const Login = () => {
             </Button>
 
 
-            <Button 
-            className="mt-6 bg-blue-700 hover:bg-blue-500 text-white font-bold rounded-full py-6 shadow-lg shadow-purple-200" 
-            isDisabled={services.length === 0}
-            onPress={() => setStep(step + 1)}
+            <Button
+              className="mt-6 bg-blue-700 hover:bg-blue-500 text-white font-bold rounded-full py-6 shadow-lg shadow-purple-200"
+              // isDisabled={services.length === 0}
+              onPress={() => setStep(step + 1)}
             >
               <ArrowBigRightDash />
             </Button>
@@ -119,28 +180,96 @@ const Login = () => {
       case 3: return (
         <div>
           <div className="flex gap-2">
-            <Input label="Nombre y Apellido" variant="underlined" className="flex-1" />
-            <Input label="Contraseña" variant="underlined" className="flex-1" />
+            <Input
+              label="Nombre y Apellido"
+              variant="underlined"
+              className="flex-1"
+              value={registerUser.name}
+              onChange={(e) => setRegisterUser({ ...registerUser, name: e.target.value })}
+            />
+            <Input
+              label="Contraseña"
+              variant="underlined"
+              className="flex-1"
+              type="password"
+              value={registerUser.password}
+              onChange={(e) => setRegisterUser({ ...registerUser, password: e.target.value })}
+            />
           </div>
 
           <div>
-            <Input label="Email" variant="underlined" />
-            <Input label="Telefono" variant="underlined" />
+            <Input
+              label="Email"
+              variant="underlined"
+              type="email"
+              value={registerUser.email}
+              onChange={(e) => setRegisterUser({ ...registerUser, email: e.target.value })}
+            />
+            <Input
+              label="Telefono"
+              variant="underlined"
+              value={registerUser.phone}
+              onChange={(e) => setRegisterUser({ ...registerUser, phone: e.target.value })}
+            />
 
-            <Checkbox size="sm" className="mt-2">
+            <Checkbox
+              size="sm"
+              className="mt-2"
+            // isSelected={registerData.acceptTerms}
+            // onChange={(e) => setRegisterData({ ...registerData, acceptTerms: e.target.checked })}
+            >
               <span className="text-xs text-gray-500">Acepto los terminos de uso y politicas de privacidad</span>
             </Checkbox>
           </div>
 
-          <Button className="mt-6 bg-gray-200 text-blue-700 font-bold rounded-full py-6 shadow-lg shadow-purple-200" onPress={() => setStep(step - 1)}>
-            <ArrowBigLeftDash />
-          </Button>
+          <div className="flex justify-between gap-4">
+            <Button
+              type="button"
+              className="mt-6 bg-gray-200 text-blue-700 font-bold rounded-full py-6 shadow-lg shadow-purple-200"
+              onPress={() => setStep(step - 1)}
+            >
+              <ArrowBigLeftDash />
+            </Button>
+          </div>
         </div>
       )
     }
   }
 
   const toggleVisibility = () => setIsVisible(!isVisible);
+
+  const handleRegisterSubmit = async () => {
+    try {
+      const payload = {
+        business: registerBusiness,
+        services: services,
+        user: registerUser
+      };
+
+      // 1. Crear el registro en la base de datos
+      const res = await axios.post('/api/auth/register', payload);
+
+      if (res.status === 201) {
+        // 2. LOGUEAR automáticamente con las credenciales recién creadas
+        const result = await signIn("credentials", {
+          email: registerUser.email,
+          password: registerUser.password,
+          redirect: false, // Evitamos recarga brusca
+        });
+
+        if (result?.ok) {
+          router.push("/dashboard"); // 3. ¡Directo al éxito!
+        }
+      }
+    } catch (error) {
+      alert("Error en el registro");
+    }
+  };
+
+  const handleLoginSubmit = async () => {
+    console.log('Enviando login...');
+    // await fetch('/api/auth/login', {...})
+  };
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-blue-500 to-blue-700">
@@ -206,7 +335,17 @@ const Login = () => {
               )
             }
 
-            <form className="flex flex-col gap-4">
+            <form
+              className="flex flex-col gap-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!isLogin) {
+                  handleRegisterSubmit();
+                } else {
+                  handleLoginSubmit();
+                }
+              }}
+            >
               {!isLogin ? (
                 registerForm(step)
               ) :
@@ -237,12 +376,19 @@ const Login = () => {
                 </div>
               )}
 
-              {isLogin &&
+              {isLogin ?
                 <Button
+                  type="submit"
                   className="mt-6 bg-blue-700 hover:bg-blue-500 text-white font-bold rounded-full py-6 shadow-lg shadow-purple-200"
-                  onPress={() => console.log("Submit")}
                 >
                   Ingresar
+                </Button>
+                :
+                <Button
+                  type="submit"
+                  className={`mt-6 bg-blue-700 hover:bg-blue-500 text-white font-bold rounded-full py-6 shadow-lg shadow-purple-20 ${step < 3 ? 'hidden' : ''}`}
+                >
+                  Registrarse?
                 </Button>
               }
             </form>
