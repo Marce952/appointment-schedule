@@ -14,9 +14,14 @@ const NavbarComponent = () => {
         <NavbarItem className="text-white">Download</NavbarItem>
         <NavbarItem className="text-white">Contact</NavbarItem>
       </NavbarContent>
-      <NavbarContent justify="end">
+      <NavbarContent justify="end" className="gap-2">
+        <Link href="/client/login">
+          <Button color="default" variant="flat" radius="sm" className="text-white">
+            Mis Tarjetas
+          </Button>
+        </Link>
         <Link href="/dashboard">
-        <Button color="primary" radius="sm">Sign in</Button>
+          <Button color="primary" radius="sm">Sign in</Button>
         </Link>
       </NavbarContent>
     </Navbar>

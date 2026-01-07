@@ -24,6 +24,7 @@ model Business {
   services     Service[]
   appointments Appointment[]
   pets         Pet[]
+  loyaltyCards LoyaltyCard[]
 }
 
 enum BusinessType {
@@ -64,7 +65,8 @@ model Client {
   businessId Int
   name       String
   phone      String
-  email      String
+  email      String   @unique // Email único para autenticación
+  password   String?   // Para autenticación de clientes
   date       DateTime?
   notes      String?
   createdAt  DateTime  @default(now())
@@ -72,6 +74,7 @@ model Client {
   business     Business      @relation(fields: [businessId], references: [id])
   appointments Appointment[]
   pets         Pet[]
+  loyaltyCards LoyaltyCard[]
 }
 
 model Pet {
@@ -99,6 +102,7 @@ model Service {
 
   business     Business      @relation(fields: [businessId], references: [id])
   appointments Appointment[]
+  loyaltyCards LoyaltyCard[]
 }
 
 model Appointment {
@@ -129,4 +133,22 @@ enum AppointmentStatus {
   CONFIRMED
   CANCELLED
   DONE
+}
+
+model LoyaltyCard {
+  id              Int      @id @default(autoincrement())
+  businessId      Int
+  clientId        Int
+  serviceId       Int?     // null = todos los servicios, o específico
+  name            String?  // Nombre de la tarjeta (ej: "Tarjeta de Fidelización - Corte de Pelo")
+  visitsCompleted Int      @default(0)  // Cuántas visitas tiene
+  visitsRequired  Int      @default(5)  // Cuántas necesita para el premio
+  isRedeemed      Boolean  @default(false) // Si ya usó el premio
+  isActive        Boolean  @default(true)  // Si la tarjeta está activa
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id])
+  client   Client   @relation(fields: [clientId], references: [id])
+  service  Service? @relation(fields: [serviceId], references: [id])
 }

@@ -1,5 +1,5 @@
 "use client";
-import { HomeIcon, Calendar, Bell, } from "lucide-react";
+import { HomeIcon, Calendar, Bell, Gift, Users } from "lucide-react";
 import Link from "next/link";
 
 export default function Sidebar() {
@@ -12,6 +12,12 @@ export default function Sidebar() {
         </Link>
         <Link href="/dashboard/turnos" className="flex items-center gap-2 hover:text-blue-600">
           <Calendar size={18} /> Turnos
+        </Link>
+        <Link href="/dashboard/clientes" className="flex items-center gap-2 hover:text-blue-600">
+          <Users size={18} /> Clientes
+        </Link>
+        <Link href="/dashboard/tarjetas-fidelizacion" className="flex items-center gap-2 hover:text-blue-600">
+          <Gift size={18} /> Tarjetas de Fidelización
         </Link>
         <Link href={"/dashboard/notificaciones"} className="flex items-center gap-2 hover:text-blue-600">
           <Bell size={18} /> Notificaciones
