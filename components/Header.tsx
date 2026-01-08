@@ -1,4 +1,7 @@
+'use client'
+import { Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, User } from "@heroui/react";
 import { Bell } from "lucide-react";
+import { signOut } from "next-auth/react";
 import Link from "next/link";
 
 export default function Header() {
@@ -15,12 +18,26 @@ export default function Header() {
         </div>
 
         <div className="flex flex-col-reverse justify-center items-center">
-          <span className="text-sm text-gray-600">Marce Garrido</span>
-          <img
-            src="/avatar.png"
-            alt="Avatar"
-            className="w-8 h-8 rounded-full border"
-          />
+          <Dropdown placement="bottom-start">
+            <DropdownTrigger>
+              <User
+                as="button"
+                avatarProps={{
+                  isBordered: true,
+                  src: "https://i.pravatar.cc/150?u=a042581f4e29026024d",
+                }}
+                className="transition-transform"
+              />
+            </DropdownTrigger>
+            <DropdownMenu aria-label="User Actions" variant="flat">
+              <DropdownItem key="profile" className="h-14 gap-2">
+                <p className="font-bold">garridomarcex@gmail.com</p>
+              </DropdownItem>
+              <DropdownItem key="logout" color="danger" onClick={() => signOut()}>
+                Log Out
+              </DropdownItem>
+            </DropdownMenu>
+          </Dropdown>
         </div>
       </div>
     </header>

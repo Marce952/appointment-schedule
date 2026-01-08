@@ -29,6 +29,10 @@ const Login = () => {
     role: 'ADMIN',
     phone: '',
   })
+  const [signInUser, setSignInUser] = useState({
+    email: '',
+    password: '',
+  })
 
   const router = useRouter();
 
@@ -267,8 +271,22 @@ const Login = () => {
   };
 
   const handleLoginSubmit = async () => {
-    console.log('Enviando login...');
-    // await fetch('/api/auth/login', {...})
+    try {
+      const res = await signIn("credentials", {
+        redirect: false,
+        email: signInUser.email,
+        password: signInUser.password,
+      });
+
+      if (res?.ok) {
+        router.push("/dashboard");
+      } else {
+        alert("Error en el inicio de sesión");
+      }
+    } catch (error) {
+      console.log("🚀 ~ handleLoginSubmit ~ error:", error)
+    }
+
   };
 
   return (
@@ -352,9 +370,11 @@ const Login = () => {
                 (
                   <>
                     <Input
-                      label="Username"
+                      label="Email"
                       variant="underlined"
                       startContent={<Ghost size={16} className="text-gray-400" />}
+                      value={signInUser.email}
+                      onChange={(e) => setSignInUser({ ...signInUser, email: e.target.value })}
                     />
 
                     <Input
@@ -366,6 +386,8 @@ const Login = () => {
                         </button>
                       }
                       type={isVisible ? "text" : "password"}
+                      value={signInUser.password}
+                      onChange={(e) => setSignInUser({ ...signInUser, password: e.target.value })}
                     />
                   </>
                 )}
