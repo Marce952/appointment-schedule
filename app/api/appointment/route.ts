@@ -27,10 +27,10 @@ export async function POST(req: Request) {
     let clientId = data.clientId;
 
     if (!clientId && data.clientData) {
-      const { name, email, phone, businessId } = data.clientData;
+      const { name, email, phone } = data.clientData;
 
-      if (!name || !email || !phone || !businessId) {
-        return errorResponse("Missing client data: name, email, phone, businessId");
+      if (!name || !email || !phone) {
+        return errorResponse("Missing client data: name, email, phone");
       }
 
       // Buscar si el cliente ya existe
@@ -39,17 +39,14 @@ export async function POST(req: Request) {
       });
 
       if (!existingClient) {
-        // Crear nuevo cliente
+        // Crear nuevo cliente (sin contraseña, la establecerá después)
         existingClient = await prisma.client.create({
           data: {
             name,
             email,
             phone,
-            businessId,
           },
         });
-      } else if (existingClient.businessId !== businessId) {
-        return errorResponse("Este email ya está registrado en otro negocio", 409);
       }
 
       clientId = existingClient.id;

@@ -8,17 +8,17 @@ export async function POST(req: Request) {
   try {
     const data = await req.json();
 
-    if (!data.email || !data.password || !data.name || !data.phone || !data.businessId) {
-      return errorResponse("Missing required fields: email, password, name, phone, businessId", 400);
+    if (!data.email || !data.password || !data.name || !data.phone) {
+      return errorResponse("Missing required fields: email, password, name, phone", 400);
     }
 
-    // Verificar que el negocio existe
-    const business = await prisma.business.findUnique({
-      where: { id: data.businessId },
+    // Verificar si el cliente ya existe
+    const existingClient = await prisma.client.findUnique({
+      where: { email: data.email },
     });
 
-    if (!business) {
-      return errorResponse("Business not found", 404);
+    if (existingClient) {
+      return errorResponse("Este email ya está registrado", 409);
     }
 
     // Encriptar la contraseña
@@ -27,7 +27,6 @@ export async function POST(req: Request) {
     // Crear el cliente
     const client = await prisma.client.create({
       data: {
-        businessId: data.businessId,
         name: data.name,
         phone: data.phone,
         email: data.email,
@@ -39,7 +38,6 @@ export async function POST(req: Request) {
         name: true,
         email: true,
         phone: true,
-        businessId: true,
         createdAt: true,
       },
     });

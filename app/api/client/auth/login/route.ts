@@ -15,15 +15,6 @@ export async function POST(req: Request) {
     // Buscar al cliente en la base de datos
     const client = await prisma.client.findUnique({
       where: { email: data.email },
-      include: {
-        business: {
-          select: {
-            id: true,
-            name: true,
-            type: true,
-          },
-        },
-      },
     });
 
     if (!client) {

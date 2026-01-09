@@ -1,6 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
+import { useSession } from 'next-auth/react'
 import {
   Card,
   CardBody,
@@ -21,40 +22,30 @@ import {
   TableCell,
   Chip,
 } from '@heroui/react'
-import { Users, Plus, Search, Edit, Trash2 } from 'lucide-react'
-import ClientSearch from '@/components/ClientSearch'
+import { Users, Search } from 'lucide-react'
 
 interface Client {
   id: number
   name: string
   email: string
   phone: string
-  businessId: number
-  notes?: string
   createdAt: string
 }
 
 export default function ClientesPage() {
+  const { data: session } = useSession()
   const [clients, setClients] = useState<Client[]>([])
   const [filteredClients, setFilteredClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [businessId, setBusinessId] = useState<number | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const { isOpen, onOpen, onClose } = useDisclosure()
-  const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure()
-
-  const [newClient, setNewClient] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    notes: '',
-  })
-
-  const [editingClient, setEditingClient] = useState<Client | null>(null)
 
   useEffect(() => {
-    loadData()
-  }, [])
+    // Cargar datos cuando la sesión esté disponible
+    if (session?.user?.businessId) {
+      loadData()
+    }
+  }, [session])
 
   useEffect(() => {
     if (searchTerm.length > 0) {
@@ -72,15 +63,26 @@ export default function ClientesPage() {
 
   const loadData = async () => {
     try {
-      const businessesRes = await axios.get('/api/business')
-      if (businessesRes.data.length > 0) {
-        const bid = businessesRes.data[0].id
-        setBusinessId(bid)
-
-        const clientsRes = await axios.get(`/api/client?businessId=${bid}`)
-        setClients(clientsRes.data)
-        setFilteredClients(clientsRes.data)
+      // Obtener businessId de la sesión del usuario
+      const bid = session?.user?.businessId
+      
+      if (!bid) {
+        console.error('No se encontró businessId en la sesión')
+        setLoading(false)
+        return
       }
+
+      setBusinessId(bid)
+
+      // Cargar clientes que tienen tarjetas en este negocio
+      const cardsRes = await axios.get(`/api/loyalty-card?businessId=${bid}`)
+      const uniqueClients = Array.from(
+        new Map(
+          cardsRes.data.map((card: any) => [card.client.id, card.client])
+        ).values()
+      )
+      setClients(uniqueClients)
+      setFilteredClients(uniqueClients)
     } catch (error) {
       console.error('Error cargando datos:', error)
     } finally {
@@ -88,79 +90,6 @@ export default function ClientesPage() {
     }
   }
 
-  const handleCreateClient = async () => {
-    if (!businessId || !newClient.name || !newClient.email || !newClient.phone) {
-      alert('Por favor completa todos los campos requeridos')
-      return
-    }
-
-    try {
-      const response = await axios.post('/api/client', {
-        ...newClient,
-        businessId,
-      })
-
-      if (response.status === 201 || response.status === 200) {
-        alert('Cliente creado exitosamente')
-        onClose()
-        setNewClient({ name: '', email: '', phone: '', notes: '' })
-        loadData()
-      }
-    } catch (error: any) {
-      alert(error.response?.data?.error || 'Error al crear el cliente')
-    }
-  }
-
-  const handleEditClient = (client: Client) => {
-    setEditingClient(client)
-    setNewClient({
-      name: client.name,
-      email: client.email,
-      phone: client.phone,
-      notes: client.notes || '',
-    })
-    onEditOpen()
-  }
-
-  const handleUpdateClient = async () => {
-    if (!editingClient || !newClient.name || !newClient.email || !newClient.phone) {
-      alert('Por favor completa todos los campos requeridos')
-      return
-    }
-
-    try {
-      const response = await axios.patch(`/api/client/${editingClient.id}`, {
-        name: newClient.name,
-        email: newClient.email,
-        phone: newClient.phone,
-        notes: newClient.notes,
-      })
-
-      if (response.status === 200) {
-        alert('Cliente actualizado exitosamente')
-        onEditClose()
-        setEditingClient(null)
-        setNewClient({ name: '', email: '', phone: '', notes: '' })
-        loadData()
-      }
-    } catch (error: any) {
-      alert(error.response?.data?.error || 'Error al actualizar el cliente')
-    }
-  }
-
-  const handleDeleteClient = async (clientId: number) => {
-    if (!confirm('¿Estás seguro de que deseas eliminar este cliente?')) {
-      return
-    }
-
-    try {
-      await axios.delete(`/api/client/${clientId}`)
-      alert('Cliente eliminado exitosamente')
-      loadData()
-    } catch (error: any) {
-      alert(error.response?.data?.error || 'Error al eliminar el cliente')
-    }
-  }
 
   if (loading) {
     return (
@@ -178,19 +107,12 @@ export default function ClientesPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-semibold text-gray-800 mb-2">
-            Gestión de Clientes
+            Clientes con Tarjetas
           </h1>
           <p className="text-gray-600">
-            Administra tus clientes y crea nuevos registros
+            Lista de clientes que tienen tarjetas de fidelización en tu negocio
           </p>
         </div>
-        <Button
-          color="primary"
-          startContent={<Plus size={20} />}
-          onPress={onOpen}
-        >
-          Nuevo Cliente
-        </Button>
       </div>
 
       {/* Búsqueda */}
@@ -229,7 +151,10 @@ export default function ClientesPage() {
             <div className="text-center py-8">
               <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600">
-                {searchTerm ? 'No se encontraron clientes' : 'No hay clientes registrados aún'}
+                {searchTerm ? 'No se encontraron clientes' : 'No hay clientes con tarjetas aún'}
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                Asigna tarjetas desde la sección "Tarjetas de Fidelización"
               </p>
             </div>
           ) : (
@@ -238,9 +163,8 @@ export default function ClientesPage() {
                 <TableColumn>NOMBRE</TableColumn>
                 <TableColumn>EMAIL</TableColumn>
                 <TableColumn>TELÉFONO</TableColumn>
-                <TableColumn>NOTAS</TableColumn>
-                <TableColumn>FECHA REGISTRO</TableColumn>
-                <TableColumn>ACCIONES</TableColumn>
+              <TableColumn>FECHA REGISTRO</TableColumn>
+              <TableColumn>INFO</TableColumn>
               </TableHeader>
               <TableBody>
                 {filteredClients.map((client) => (
@@ -255,36 +179,12 @@ export default function ClientesPage() {
                       <p className="text-sm">{client.phone}</p>
                     </TableCell>
                     <TableCell>
-                      <p className="text-sm text-gray-500 max-w-xs truncate">
-                        {client.notes || '-'}
-                      </p>
-                    </TableCell>
-                    <TableCell>
                       <p className="text-sm text-gray-500">
                         {new Date(client.createdAt).toLocaleDateString('es-ES')}
                       </p>
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          color="primary"
-                          variant="light"
-                          startContent={<Edit size={16} />}
-                          onPress={() => handleEditClient(client)}
-                        >
-                          Editar
-                        </Button>
-                        <Button
-                          size="sm"
-                          color="danger"
-                          variant="light"
-                          startContent={<Trash2 size={16} />}
-                          onPress={() => handleDeleteClient(client.id)}
-                        >
-                          Eliminar
-                        </Button>
-                      </div>
+                      <p className="text-sm text-gray-500">Solo lectura</p>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -294,111 +194,6 @@ export default function ClientesPage() {
         </CardBody>
       </Card>
 
-      {/* Modal para crear cliente */}
-      <Modal isOpen={isOpen} onClose={onClose} size="2xl">
-        <ModalContent>
-          <ModalHeader className="flex flex-col gap-1">
-            Crear Nuevo Cliente
-          </ModalHeader>
-          <ModalBody>
-            <div className="space-y-4">
-              <Input
-                label="Nombre completo"
-                placeholder="Ej: Juan Pérez"
-                value={newClient.name}
-                onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
-                isRequired
-                variant="bordered"
-              />
-              <Input
-                label="Email"
-                type="email"
-                placeholder="Ej: juan@example.com"
-                value={newClient.email}
-                onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
-                isRequired
-                variant="bordered"
-              />
-              <Input
-                label="Teléfono"
-                placeholder="Ej: +34 123 456 789"
-                value={newClient.phone}
-                onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
-                isRequired
-                variant="bordered"
-              />
-              <Input
-                label="Notas (Opcional)"
-                placeholder="Información adicional sobre el cliente"
-                value={newClient.notes}
-                onChange={(e) => setNewClient({ ...newClient, notes: e.target.value })}
-                variant="bordered"
-              />
-            </div>
-          </ModalBody>
-          <ModalFooter>
-            <Button color="danger" variant="light" onPress={onClose}>
-              Cancelar
-            </Button>
-            <Button color="primary" onPress={handleCreateClient}>
-              Crear Cliente
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-
-      {/* Modal para editar cliente */}
-      <Modal isOpen={isEditOpen} onClose={onEditClose} size="2xl">
-        <ModalContent>
-          <ModalHeader className="flex flex-col gap-1">
-            Editar Cliente
-          </ModalHeader>
-          <ModalBody>
-            <div className="space-y-4">
-              <Input
-                label="Nombre completo"
-                placeholder="Ej: Juan Pérez"
-                value={newClient.name}
-                onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
-                isRequired
-                variant="bordered"
-              />
-              <Input
-                label="Email"
-                type="email"
-                placeholder="Ej: juan@example.com"
-                value={newClient.email}
-                onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
-                isRequired
-                variant="bordered"
-              />
-              <Input
-                label="Teléfono"
-                placeholder="Ej: +34 123 456 789"
-                value={newClient.phone}
-                onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
-                isRequired
-                variant="bordered"
-              />
-              <Input
-                label="Notas (Opcional)"
-                placeholder="Información adicional sobre el cliente"
-                value={newClient.notes}
-                onChange={(e) => setNewClient({ ...newClient, notes: e.target.value })}
-                variant="bordered"
-              />
-            </div>
-          </ModalBody>
-          <ModalFooter>
-            <Button color="danger" variant="light" onPress={onEditClose}>
-              Cancelar
-            </Button>
-            <Button color="primary" onPress={handleUpdateClient}>
-              Actualizar Cliente
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
     </div>
   )
 }

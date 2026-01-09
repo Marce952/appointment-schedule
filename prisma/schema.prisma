@@ -20,7 +20,6 @@ model Business {
   updatedAt DateTime     @updatedAt
 
   users        User[]
-  clients      Client[]
   services     Service[]
   appointments Appointment[]
   pets         Pet[]
@@ -62,7 +61,6 @@ enum UserRole {
 
 model Client {
   id         Int       @id @default(autoincrement())
-  businessId Int
   name       String
   phone      String
   email      String   @unique // Email único para autenticación
@@ -71,7 +69,6 @@ model Client {
   notes      String?
   createdAt  DateTime  @default(now())
 
-  business     Business      @relation(fields: [businessId], references: [id])
   appointments Appointment[]
   pets         Pet[]
   loyaltyCards LoyaltyCard[]

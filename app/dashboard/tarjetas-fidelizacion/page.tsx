@@ -1,20 +1,21 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
+import { useSession } from 'next-auth/react'
 import { Card, CardBody, CardHeader, Button, Input, Select, SelectItem, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Chip, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from '@heroui/react'
 import { Gift, Plus, CheckCircle, XCircle, Clock } from 'lucide-react'
-import ClientSearch from '@/components/ClientSearch'
+
+
+interface Service {
+  id: number
+  name: string
+}
 
 interface Client {
   id: number
   name: string
   email: string
   phone: string
-}
-
-interface Service {
-  id: number
-  name: string
 }
 
 interface LoyaltyCard {
@@ -30,48 +31,49 @@ interface LoyaltyCard {
 }
 
 export default function TarjetasFidelizacionPage() {
+  const { data: session } = useSession()
   const [cards, setCards] = useState<LoyaltyCard[]>([])
-  const [clients, setClients] = useState<Client[]>([])
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
   const [businessId, setBusinessId] = useState<number | null>(null)
   const { isOpen, onOpen, onClose } = useDisclosure()
 
   const [newCard, setNewCard] = useState({
-    clientId: '',
-    serviceId: '',
+    email: '',
+    phone: '',
     name: '',
+    serviceId: '',
+    cardName: '',
     visitsRequired: '5',
   })
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null)
 
   useEffect(() => {
-    // Obtener el businessId (en un caso real, vendría de la sesión)
-    // Por ahora, lo pediremos o usaremos el primero disponible
-    loadData()
-  }, [])
+    // Cargar datos cuando la sesión esté disponible
+    if (session?.user?.businessId) {
+      loadData()
+    }
+  }, [session])
 
   const loadData = async () => {
     try {
-      // Obtener negocios (en producción, esto vendría de la sesión)
-      const businessesRes = await axios.get('/api/business')
-      if (businessesRes.data.length > 0) {
-        const bid = businessesRes.data[0].id
-        setBusinessId(bid)
-
-        // Cargar tarjetas
-        const cardsRes = await axios.get(`/api/loyalty-card?businessId=${bid}`)
-        setCards(cardsRes.data)
-
-        // Cargar clientes
-        const clientsRes = await axios.get('/api/client')
-        const businessClients = clientsRes.data.filter((c: any) => c.businessId === bid)
-        setClients(businessClients)
-
-        // Cargar servicios
-        const servicesRes = await axios.get(`/api/service/${bid}`)
-        setServices(servicesRes.data)
+      // Obtener businessId de la sesión del usuario
+      const bid = session?.user?.businessId
+      
+      if (!bid) {
+        console.error('No se encontró businessId en la sesión')
+        setLoading(false)
+        return
       }
+
+      setBusinessId(bid)
+
+      // Cargar tarjetas
+      const cardsRes = await axios.get(`/api/loyalty-card?businessId=${bid}`)
+      setCards(cardsRes.data)
+
+      // Cargar servicios
+      const servicesRes = await axios.get(`/api/service/${bid}`)
+      setServices(servicesRes.data)
     } catch (error) {
       console.error('Error cargando datos:', error)
     } finally {
@@ -80,25 +82,36 @@ export default function TarjetasFidelizacionPage() {
   }
 
   const handleCreateCard = async () => {
-    if (!businessId || !selectedClient || !newCard.visitsRequired) {
+    if (!businessId || !newCard.visitsRequired) {
       alert('Por favor completa todos los campos requeridos')
+      return
+    }
+
+    if (!newCard.email && !newCard.phone) {
+      alert('Debes proporcionar el email o teléfono del cliente')
+      return
+    }
+
+    if (!newCard.name) {
+      alert('Debes proporcionar el nombre del cliente')
       return
     }
 
     try {
       const response = await axios.post('/api/loyalty-card/assign', {
         businessId,
-        clientId: selectedClient.id,
+        email: newCard.email || undefined,
+        phone: newCard.phone || undefined,
+        name: newCard.name,
         serviceId: newCard.serviceId ? parseInt(newCard.serviceId) : null,
-        name: newCard.name || undefined,
+        cardName: newCard.cardName || undefined,
         visitsRequired: parseInt(newCard.visitsRequired),
       })
 
       if (response.status === 201) {
         alert('Tarjeta creada exitosamente')
         onClose()
-        setNewCard({ clientId: '', serviceId: '', name: '', visitsRequired: '5' })
-        setSelectedClient(null)
+        setNewCard({ email: '', phone: '', name: '', serviceId: '', cardName: '', visitsRequired: '5' })
         loadData()
       }
     } catch (error: any) {
@@ -273,21 +286,41 @@ export default function TarjetasFidelizacionPage() {
           </ModalHeader>
           <ModalBody>
             <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Cliente <span className="text-red-500">*</span>
-                </label>
-                <ClientSearch
-                  businessId={businessId}
-                  selectedClient={selectedClient}
-                  onSelectClient={(client) => {
-                    setSelectedClient(client)
-                    setNewCard({ ...newCard, clientId: client ? client.id.toString() : '' })
-                  }}
-                  placeholder="Buscar cliente por nombre, email o teléfono..."
-                  isRequired
-                />
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 text-blue-800 rounded text-sm">
+                <p className="font-medium mb-1">Buscar cliente por email o teléfono</p>
+                <p>Si el cliente no existe, se creará automáticamente.</p>
               </div>
+              
+              <Input
+                label="Email del Cliente"
+                type="email"
+                placeholder="cliente@ejemplo.com"
+                value={newCard.email}
+                onChange={(e) => setNewCard({ ...newCard, email: e.target.value })}
+                variant="bordered"
+                description="O usa el teléfono si no tienes el email"
+              />
+              
+              <div className="text-center text-gray-500">o</div>
+              
+              <Input
+                label="Teléfono del Cliente"
+                placeholder="+34 123 456 789"
+                value={newCard.phone}
+                onChange={(e) => setNewCard({ ...newCard, phone: e.target.value })}
+                variant="bordered"
+                description="O usa el email si no tienes el teléfono"
+              />
+              
+              <Input
+                label="Nombre del Cliente"
+                placeholder="Nombre completo"
+                value={newCard.name}
+                onChange={(e) => setNewCard({ ...newCard, name: e.target.value })}
+                isRequired
+                variant="bordered"
+                description="Requerido si el cliente no existe"
+              />
 
               <Select
                 label="Servicio (Opcional)"
@@ -312,8 +345,8 @@ export default function TarjetasFidelizacionPage() {
               <Input
                 label="Nombre de la tarjeta (Opcional)"
                 placeholder="Ej: Tarjeta de Fidelización - Corte de Pelo"
-                value={newCard.name}
-                onChange={(e) => setNewCard({ ...newCard, name: e.target.value })}
+                value={newCard.cardName}
+                onChange={(e) => setNewCard({ ...newCard, cardName: e.target.value })}
               />
 
               <Input

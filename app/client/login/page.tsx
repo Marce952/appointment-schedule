@@ -23,7 +23,6 @@ export default function ClientLoginPage() {
     email: "",
     password: "",
     phone: "",
-    businessId: "",
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -100,17 +99,8 @@ export default function ClientLoginPage() {
     setLoading(true);
     setError("");
 
-    if (!registerData.businessId) {
-      setError("Por favor, ingresa el ID del negocio");
-      setLoading(false);
-      return;
-    }
-
     try {
-      const response = await axios.post("/api/client/register", {
-        ...registerData,
-        businessId: parseInt(registerData.businessId),
-      });
+      const response = await axios.post("/api/client/register", registerData);
 
       if (response.data.client) {
         // Guardar el cliente en localStorage
@@ -274,15 +264,6 @@ export default function ClientLoginPage() {
               onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })}
               required
               variant="bordered"
-            />
-            <Input
-              label="ID del Negocio"
-              type="number"
-              value={registerData.businessId}
-              onChange={(e) => setRegisterData({ ...registerData, businessId: e.target.value })}
-              required
-              variant="bordered"
-              description="Pregunta al negocio por su ID"
             />
             <Input
               label="Contraseña"

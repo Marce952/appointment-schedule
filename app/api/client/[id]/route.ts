@@ -22,14 +22,12 @@ export async function GET(
       // No incluir la contraseña
       select: {
         id: true,
-        businessId: true,
         name: true,
         phone: true,
         email: true,
         date: true,
         notes: true,
         createdAt: true,
-        business: true,
       },
     });
 
@@ -88,7 +86,6 @@ export async function PATCH(
         name: true,
         phone: true,
         email: true,
-        businessId: true,
         notes: true,
         createdAt: true,
       },
