@@ -19,10 +19,11 @@ import {
   TableBody,
   TableRow,
   TableCell,
-  Chip,
+  Pagination,
 } from '@heroui/react'
 import { Users, Plus, Search, Edit, Trash2 } from 'lucide-react'
 import ClientSearch from '@/components/ClientSearch'
+import { useSession } from 'next-auth/react'
 
 interface Client {
   id: number
@@ -35,11 +36,16 @@ interface Client {
 }
 
 export default function ClientesPage() {
+  const { data: session } = useSession()
+  const businessId = session?.user?.businessId
+
   const [clients, setClients] = useState<Client[]>([])
   const [filteredClients, setFilteredClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
-  const [businessId, setBusinessId] = useState<number | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalClients, setTotalClients] = useState(0)
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure()
 
@@ -53,34 +59,41 @@ export default function ClientesPage() {
   const [editingClient, setEditingClient] = useState<Client | null>(null)
 
   useEffect(() => {
-    loadData()
-  }, [])
+    loadData(page, searchTerm)
+  }, [page, businessId])
 
+  // Debounce search
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (businessId) {
+        setPage(1) // Reset to first page on search
+        loadData(1, searchTerm)
+      }
+    }, 500)
+
+    return () => clearTimeout(delayDebounceFn)
+  }, [searchTerm])
+
+  // Removed client-side filtering since it's now server-side
+  /* 
   useEffect(() => {
     if (searchTerm.length > 0) {
-      const filtered = clients.filter(
-        (client) =>
-          client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          client.phone.includes(searchTerm)
-      )
-      setFilteredClients(filtered)
-    } else {
-      setFilteredClients(clients)
+      ...
     }
   }, [searchTerm, clients])
+  */
 
-  const loadData = async () => {
+  const loadData = async (currentPage = 1, search = '') => {
+    if (!businessId) return
+
     try {
-      const businessesRes = await axios.get('/api/business')
-      if (businessesRes.data.length > 0) {
-        const bid = businessesRes.data[0].id
-        setBusinessId(bid)
+      setLoading(currentPage === 1 && !clients.length) // Only show fullscreen loading on first load
 
-        const clientsRes = await axios.get(`/api/client?businessId=${bid}`)
-        setClients(clientsRes.data)
-        setFilteredClients(clientsRes.data)
-      }
+      const clientsRes = await axios.get(`/api/client?businessId=${businessId}&page=${currentPage}&name=${search}`)
+      setClients(clientsRes.data.data)
+      setFilteredClients(clientsRes.data.data)
+      setTotalPages(clientsRes.data.meta.totalPages)
+      setTotalClients(clientsRes.data.meta.total)
     } catch (error) {
       console.error('Error cargando datos:', error)
     } finally {
@@ -221,7 +234,7 @@ export default function ClientesPage() {
       <Card>
         <CardHeader className="flex justify-between items-center">
           <h2 className="text-lg font-semibold">
-            Clientes ({filteredClients.length})
+            Clientes ({totalClients})
           </h2>
         </CardHeader>
         <CardBody>
@@ -292,6 +305,17 @@ export default function ClientesPage() {
             </Table>
           )}
         </CardBody>
+        {totalPages > 1 && (
+          <div className="flex justify-center p-4 border-t">
+            <Pagination
+              showControls
+              color="primary"
+              page={page}
+              total={totalPages}
+              onChange={(p) => setPage(p)}
+            />
+          </div>
+        )}
       </Card>
 
       {/* Modal para crear cliente */}

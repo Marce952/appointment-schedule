@@ -1,16 +1,32 @@
 import { prisma } from "@/lib/prisma";
 import { errorResponse } from "@/lib/errors";
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 export async function GET(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+
+    if (!session || !session.user?.businessId) {
+      return errorResponse("Unauthorized", 401);
+    }
+
+    const businessId = session.user.businessId;
     const { searchParams } = new URL(req.url);
-    const businessId = searchParams.get("businessId");
+    const name = searchParams.get("name") || "";
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
 
-    const where = businessId ? { businessId: parseInt(businessId) } : {};
+    const skip = (page - 1) * limit;
 
-    return NextResponse.json(
-      await prisma.client.findMany({
+    const where: any = {
+      businessId,
+      ...(name ? { name: { contains: name, mode: "insensitive" } } : {}),
+    };
+
+    const [clients, total] = await Promise.all([
+      prisma.client.findMany({
         where,
         select: {
           id: true,
@@ -24,8 +40,21 @@ export async function GET(req: Request) {
         orderBy: {
           createdAt: "desc",
         },
-      })
-    );
+        skip,
+        take: limit,
+      }),
+      prisma.client.count({ where }),
+    ]);
+
+    return NextResponse.json({
+      data: clients,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (err) {
     return errorResponse("Failed to fetch clients", 500, err);
   }
@@ -33,10 +62,16 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.businessId) {
+      return errorResponse("Unauthorized", 401);
+    }
+    const businessId = session.user.businessId;
+
     const data = await req.json();
 
-    if (!data.name || !data.email || !data.phone || !data.businessId)
-      return errorResponse("Missing required fields: name, email, phone, businessId");
+    if (!data.name || !data.email || !data.phone)
+      return errorResponse("Missing required fields: name, email, phone");
 
     // Verificar si el cliente ya existe por email
     const existingClient = await prisma.client.findUnique({
@@ -45,7 +80,7 @@ export async function POST(req: Request) {
 
     if (existingClient) {
       // Si existe pero es de otro negocio, devolver error
-      if (existingClient.businessId !== data.businessId) {
+      if (existingClient.businessId !== businessId) {
         return errorResponse("Este email ya está registrado en otro negocio", 409);
       }
       // Si existe y es del mismo negocio, devolver el cliente existente
@@ -57,7 +92,7 @@ export async function POST(req: Request) {
         name: data.name,
         email: data.email,
         phone: data.phone,
-        businessId: data.businessId,
+        businessId: businessId,
         notes: data.notes || null,
       },
       select: {

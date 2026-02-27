@@ -1,11 +1,20 @@
 import { prisma } from "@/lib/prisma";
 import { errorResponse } from "@/lib/errors";
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.businessId) {
+      return errorResponse("Unauthorized", 401);
+    }
+    const businessId = session.user.businessId;
+
     return NextResponse.json(
       await prisma.appointment.findMany({
+        where: { businessId },
         include: {
           client: true,
           pet: true,
@@ -21,16 +30,22 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.businessId) {
+      return errorResponse("Unauthorized", 401);
+    }
+    const businessId = session.user.businessId;
+
     const data = await req.json();
 
     // Si no hay clientId pero hay datos del cliente, crear el cliente primero
     let clientId = data.clientId;
 
     if (!clientId && data.clientData) {
-      const { name, email, phone, businessId } = data.clientData;
+      const { name, email, phone } = data.clientData;
 
-      if (!name || !email || !phone || !businessId) {
-        return errorResponse("Missing client data: name, email, phone, businessId");
+      if (!name || !email || !phone) {
+        return errorResponse("Missing client data: name, email, phone");
       }
 
       // Buscar si el cliente ya existe
@@ -55,13 +70,13 @@ export async function POST(req: Request) {
       clientId = existingClient.id;
     }
 
-    if (!clientId || !data.serviceId || !data.date || !data.businessId)
-      return errorResponse("Missing appointment data: clientId, serviceId, date, businessId");
+    if (!clientId || !data.serviceId || !data.date)
+      return errorResponse("Missing appointment data: clientId, serviceId, date");
 
     const overlapping = await prisma.appointment.findFirst({
       where: {
         date: data.date,
-        businessId: data.businessId,
+        businessId: businessId,
         status: { not: "CANCELLED" },
       },
     });
@@ -73,6 +88,7 @@ export async function POST(req: Request) {
       data: {
         ...data,
         clientId,
+        businessId, // Forzar el businessId de la sesión
       },
       include: {
         client: true,

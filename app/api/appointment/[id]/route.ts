@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { errorResponse } from "@/lib/errors";
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 // GET: Obtener una cita específica
 export async function GET(
@@ -8,8 +10,17 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const appointment = await prisma.appointment.findUnique({
-      where: { id: parseInt(params.id) },
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.businessId) {
+      return errorResponse("Unauthorized", 401);
+    }
+    const businessId = session.user.businessId;
+
+    const appointment = await prisma.appointment.findFirst({
+      where: {
+        id: parseInt(params.id),
+        businessId: businessId
+      },
       include: {
         client: true,
         pet: true,
@@ -35,12 +46,21 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.businessId) {
+      return errorResponse("Unauthorized", 401);
+    }
+    const businessId = session.user.businessId;
+
     const data = await req.json();
     const appointmentId = parseInt(params.id);
 
-    // Obtener la cita actual para verificar el estado anterior
-    const currentAppointment = await prisma.appointment.findUnique({
-      where: { id: appointmentId },
+    // Obtener la cita actual para verificar el estado anterior y pertenencia
+    const currentAppointment = await prisma.appointment.findFirst({
+      where: {
+        id: appointmentId,
+        businessId: businessId
+      },
       include: {
         client: true,
         service: true,
@@ -53,7 +73,10 @@ export async function PATCH(
 
     // Actualizar la cita
     const updatedAppointment = await prisma.appointment.update({
-      where: { id: appointmentId },
+      where: {
+        id: appointmentId,
+        businessId: businessId
+      },
       data: {
         status: data.status,
         note: data.note,
@@ -92,8 +115,17 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.businessId) {
+      return errorResponse("Unauthorized", 401);
+    }
+    const businessId = session.user.businessId;
+
     await prisma.appointment.delete({
-      where: { id: parseInt(params.id) },
+      where: {
+        id: parseInt(params.id),
+        businessId: businessId
+      },
     });
 
     return NextResponse.json({ message: "Appointment deleted successfully" });

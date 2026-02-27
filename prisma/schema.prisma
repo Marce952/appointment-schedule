@@ -65,8 +65,8 @@ model Client {
   businessId Int
   name       String
   phone      String
-  email      String   @unique // Email único para autenticación
-  password   String?   // Para autenticación de clientes
+  email      String    @unique // Email único para autenticación
+  password   String? // Para autenticación de clientes
   date       DateTime?
   notes      String?
   createdAt  DateTime  @default(now())
@@ -139,12 +139,12 @@ model LoyaltyCard {
   id              Int      @id @default(autoincrement())
   businessId      Int
   clientId        Int
-  serviceId       Int?     // null = todos los servicios, o específico
-  name            String?  // Nombre de la tarjeta (ej: "Tarjeta de Fidelización - Corte de Pelo")
-  visitsCompleted Int      @default(0)  // Cuántas visitas tiene
-  visitsRequired  Int      @default(5)  // Cuántas necesita para el premio
+  serviceId       Int? // null = todos los servicios, o específico
+  name            String? // Nombre de la tarjeta (ej: "Tarjeta de Fidelización - Corte de Pelo")
+  visitsCompleted Int      @default(0) // Cuántas visitas tiene
+  visitsRequired  Int      @default(5) // Cuántas necesita para el premio
   isRedeemed      Boolean  @default(false) // Si ya usó el premio
-  isActive        Boolean  @default(true)  // Si la tarjeta está activa
+  isActive        Boolean  @default(true) // Si la tarjeta está activa
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { errorResponse } from "@/lib/errors";
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 // GET: Obtener un cliente específico
 export async function GET(
@@ -8,18 +10,18 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const client = await prisma.client.findUnique({
-      where: { id: parseInt(params.id) },
-      include: {
-        business: {
-          select: {
-            id: true,
-            name: true,
-            type: true,
-          },
-        },
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.businessId) {
+      return errorResponse("Unauthorized", 401);
+    }
+    const businessId = session.user.businessId;
+
+    const client = await prisma.client.findFirst({
+      where: {
+        id: parseInt(params.id),
+        businessId: businessId
       },
-      // No incluir la contraseña
+      // No incluir la contraseña, usar select exclusivamente
       select: {
         id: true,
         businessId: true,
@@ -29,7 +31,13 @@ export async function GET(
         date: true,
         notes: true,
         createdAt: true,
-        business: true,
+        business: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+          },
+        },
       },
     });
 
@@ -49,12 +57,21 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.businessId) {
+      return errorResponse("Unauthorized", 401);
+    }
+    const businessId = session.user.businessId;
+
     const data = await req.json();
     const clientId = parseInt(params.id);
 
-    // Verificar que el cliente existe
-    const existingClient = await prisma.client.findUnique({
-      where: { id: clientId },
+    // Verificar que el cliente existe y pertenece al negocio
+    const existingClient = await prisma.client.findFirst({
+      where: {
+        id: clientId,
+        businessId: businessId
+      },
     });
 
     if (!existingClient) {
@@ -81,7 +98,10 @@ export async function PATCH(
     }
 
     const updatedClient = await prisma.client.update({
-      where: { id: clientId },
+      where: {
+        id: clientId,
+        businessId: businessId
+      },
       data: updateData,
       select: {
         id: true,
@@ -109,6 +129,12 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.businessId) {
+      return errorResponse("Unauthorized", 401);
+    }
+    const businessId = session.user.businessId;
+
     const clientId = parseInt(params.id);
 
     // Verificar si el cliente tiene citas asociadas
@@ -124,7 +150,10 @@ export async function DELETE(
     }
 
     await prisma.client.delete({
-      where: { id: clientId },
+      where: {
+        id: clientId,
+        businessId: businessId
+      },
     });
 
     return NextResponse.json({ message: "Client deleted successfully" });
