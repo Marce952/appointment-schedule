@@ -1,0 +1,33 @@
+{
+  "name": "DateSoul - Simple Sync Test",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "node-1",
+      "name": "Start",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### SI PUEDES VER ESTO, LA SINCRONIZACION FUNCIONA\n\nPor favor, confirmame si ves este recuadro."
+      },
+      "id": "node-2",
+      "name": "Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        400,
+        200
+      ]
+    }
+  ],
+  "connections": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

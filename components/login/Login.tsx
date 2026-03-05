@@ -33,6 +33,20 @@ const Login = () => {
     email: '',
     password: '',
   })
+  const [businessHours, setBusinessHours] = useState<any[]>([
+    { dayOfWeek: 1, startTime: '08:00', endTime: '13:00' },
+    { dayOfWeek: 1, startTime: '16:00', endTime: '21:00' },
+    { dayOfWeek: 2, startTime: '08:00', endTime: '13:00' },
+    { dayOfWeek: 2, startTime: '16:00', endTime: '21:00' },
+    { dayOfWeek: 3, startTime: '08:00', endTime: '13:00' },
+    { dayOfWeek: 3, startTime: '16:00', endTime: '21:00' },
+    { dayOfWeek: 4, startTime: '08:00', endTime: '13:00' },
+    { dayOfWeek: 4, startTime: '16:00', endTime: '21:00' },
+    { dayOfWeek: 5, startTime: '08:00', endTime: '13:00' },
+    { dayOfWeek: 5, startTime: '16:00', endTime: '21:00' },
+  ]);
+  const [tempHour, setTempHour] = useState({ dayOfWeek: '1', startTime: '08:00', endTime: '20:00' });
+
 
   const router = useRouter();
 
@@ -42,6 +56,19 @@ const Login = () => {
     setServices([...services, tempService]);
     setTempService({ name: '', duration: '', price: '' }); // Limpiar campos
   };
+
+  const addBusinessHour = () => {
+    setBusinessHours([...businessHours, tempHour]);
+  };
+
+  const removeBusinessHour = (index: number) => {
+    setBusinessHours(businessHours.filter((_, i) => i !== index));
+  };
+
+  const daysLabels: { [key: string]: string } = {
+    '0': 'Domingo', '1': 'Lunes', '2': 'Martes', '3': 'Miércoles', '4': 'Jueves', '5': 'Viernes', '6': 'Sábado'
+  };
+
 
   const businessType = [
     { key: "peluqueria", label: "peluqueria" },
@@ -226,17 +253,78 @@ const Login = () => {
             </Checkbox>
           </div>
 
-          <div className="flex justify-between gap-4">
+          <div className="flex justify-between items-center mt-4">
+            <Button className="mt-6 bg-gray-200 text-blue-700 font-bold rounded-full py-6 shadow-lg shadow-purple-200" onPress={() => setStep(step - 1)}>
+              <ArrowBigLeftDash />
+            </Button>
+
+
             <Button
-              type="button"
-              className="mt-6 bg-gray-200 text-blue-700 font-bold rounded-full py-6 shadow-lg shadow-purple-200"
-              onPress={() => setStep(step - 1)}
+              className="mt-6 bg-blue-700 hover:bg-blue-500 text-white font-bold rounded-full py-6 shadow-lg shadow-purple-200"
+              onPress={() => setStep(step + 1)}
             >
+              <ArrowBigRightDash />
+            </Button>
+          </div>
+        </div>
+      )
+
+      case 4: return (
+        <div className="flex flex-col gap-4 mt-2">
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2 items-end">
+              <Select
+                label="Día"
+                variant="underlined"
+                className="w-1/3"
+                selectedKeys={[tempHour.dayOfWeek]}
+                onChange={(e) => setTempHour({ ...tempHour, dayOfWeek: e.target.value })}
+              >
+                {Object.entries(daysLabels).map(([key, label]) => (
+                  <SelectItem key={key}>{label}</SelectItem>
+                ))}
+              </Select>
+              <Input
+                label="Desde"
+                type="time"
+                variant="underlined"
+                value={tempHour.startTime}
+                onChange={(e) => setTempHour({ ...tempHour, startTime: e.target.value })}
+              />
+              <Input
+                label="Hasta"
+                type="time"
+                variant="underlined"
+                value={tempHour.endTime}
+                onChange={(e) => setTempHour({ ...tempHour, endTime: e.target.value })}
+              />
+              <Button isIconOnly color="primary" variant="flat" onPress={addBusinessHour}>
+                <PlusIcon size={18} />
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-2 max-h-[200px] overflow-y-auto p-2 border-t border-gray-400">
+            {businessHours.sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime)).map((h, index) => (
+              <div key={index} className="flex justify-between items-center bg-gray-50 p-2 rounded-lg border border-gray-100">
+                <span className="text-xs font-semibold text-gray-600">
+                  {daysLabels[h.dayOfWeek]}: {h.startTime} - {h.endTime}
+                </span>
+                <Button isIconOnly size="sm" variant="light" color="danger" onPress={() => removeBusinessHour(index)}>
+                  <PlusIcon size={14} className="rotate-45" />
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-between items-center mt-4">
+            <Button className="mt-6 bg-gray-200 text-blue-700 font-bold rounded-full py-6 shadow-lg shadow-purple-200" onPress={() => setStep(step - 1)}>
               <ArrowBigLeftDash />
             </Button>
           </div>
         </div>
       )
+
     }
   }
 
@@ -247,8 +335,10 @@ const Login = () => {
       const payload = {
         business: registerBusiness,
         services: services,
-        user: registerUser
+        user: registerUser,
+        businessHours: businessHours
       };
+
 
       // 1. Crear el registro en la base de datos
       const res = await axios.post('/api/auth/register', payload);
@@ -348,7 +438,9 @@ const Login = () => {
                   {step === 1 && <p className="text-sm font-semibold text-gray-500">Registra tu negocio</p>}
                   {step === 2 && <p className="text-sm font-semibold text-gray-500">Añade los servicios que ofreces</p>}
                   {step === 3 && <p className="text-sm font-semibold text-gray-500">Configura tu usuario</p>}
-                  <Progress aria-label="Loading..." className="max-w-md" value={step * 33.3} />
+                  {step === 4 && <p className="text-sm font-semibold text-gray-500">Horarios de apertura</p>}
+                  <Progress aria-label="Loading..." className="max-w-md" value={step * 25} />
+
                 </div>
               )
             }
@@ -408,10 +500,11 @@ const Login = () => {
                 :
                 <Button
                   type="submit"
-                  className={`mt-6 bg-blue-700 hover:bg-blue-500 text-white font-bold rounded-full py-6 shadow-lg shadow-purple-20 ${step < 3 ? 'hidden' : ''}`}
+                  className={`mt-6 bg-blue-700 hover:bg-blue-500 text-white font-bold rounded-full py-6 shadow-lg shadow-purple-20 ${step < 4 ? 'hidden' : ''}`}
                 >
-                  Registrarse?
+                  Registrarse
                 </Button>
+
               }
             </form>
 

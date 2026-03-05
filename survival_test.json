@@ -1,0 +1,45 @@
+{
+  "name": "DateSoul - PRUEBA EN VIVO",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "test-1",
+      "name": "INICIO",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        100,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### SI VES ESTO, EL FLUJO NO ESTA VACIO"
+      },
+      "id": "test-2",
+      "name": "Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        300,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "INICIO": {
+      "main": [
+        [
+          {
+            "node": "Note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

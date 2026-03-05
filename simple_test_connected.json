@@ -1,0 +1,169 @@
+{
+  "name": "DateSoul - SaaS Manager v6 (FIXED CONNECTIONS)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-webhook"
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "id": "node-1"
+    },
+    {
+      "parameters": {
+        "jsCode": "return { phone: $json.body.from };"
+      },
+      "name": "Clean",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        200,
+        200
+      ],
+      "id": "node-2"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "Client"
+      },
+      "name": "GetClient",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        400,
+        200
+      ],
+      "id": "node-3"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1,
+      "position": [
+        700,
+        200
+      ],
+      "id": "node-4"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini"
+      },
+      "name": "OpenAI",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        600,
+        400
+      ],
+      "id": "node-5"
+    },
+    {
+      "parameters": {
+        "tableName": "chat_memory"
+      },
+      "name": "Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1,
+      "position": [
+        800,
+        400
+      ],
+      "id": "node-6"
+    },
+    {
+      "parameters": {
+        "message": "={{$json.output}}"
+      },
+      "name": "WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        200
+      ],
+      "id": "node-7"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Clean",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean": {
+      "main": [
+        [
+          {
+            "node": "GetClient",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetClient": {
+      "main": [
+        [
+          {
+            "node": "Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

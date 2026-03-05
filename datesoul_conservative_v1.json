@@ -1,0 +1,356 @@
+{
+  "name": "DateSoul - SaaS Manager v6 (Compatible)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-cloud-datesoul-compatible",
+        "responseMode": "lastNode"
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "id": "node-wh-main"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.item.json.body;\nreturn {\n  phone: body.phone || body.from || 'unknown',\n  text: body.text || body.message || '',\n  name: body.name || 'Cliente'\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        180,
+        200
+      ],
+      "id": "node-code-clean"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "Client",
+        "where": "phone = '{{ $node[\"node-code-clean\"].json.phone }}'",
+        "additionalOptions": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        360,
+        200
+      ],
+      "id": "node-get-client"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.length }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        540,
+        200
+      ],
+      "id": "node-exists-if"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "Client",
+        "columns": "name, phone, businessId, email",
+        "values": {
+          "values": [
+            {
+              "name": "={{ $node[\"node-code-clean\"].json.name }}",
+              "phone": "={{ $node[\"node-code-clean\"].json.phone }}",
+              "businessId": 1,
+              "email": "={{ $node[\"node-code-clean\"].json.phone + '@datesoul-saas.com' }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        720,
+        350
+      ],
+      "id": "node-create-client"
+    },
+    {
+      "parameters": {
+        "options": {},
+        "promptValues": {
+          "systemPrompt": "=Eres un recepcionista experto de DateSoul. 👩‍💼🐾\\nExtrae: Nombre Mascota/Paciente, Fecha (ISO), Hora y Nota.\\nID Cliente Actual: {{ $node[\"node-get-client\"].json[0]?.id || $node[\"node-create-client\"].json.id }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.1,
+      "position": [
+        1000,
+        200
+      ],
+      "id": "node-agent"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        900,
+        400
+      ],
+      "id": "node-model"
+    },
+    {
+      "parameters": {
+        "tableName": "chat_memory_v6"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        400
+      ],
+      "id": "node-memory"
+    },
+    {
+      "parameters": {
+        "name": "get_appointments",
+        "description": "Consultar mis citas",
+        "method": "GET",
+        "url": "=http://localhost:3000/api/appointments?client_id={{ $node[\"node-get-client\"].json[0]?.id || $node[\"node-create-client\"].json.id }}"
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        400
+      ],
+      "id": "tool-get"
+    },
+    {
+      "parameters": {
+        "name": "create_appointment",
+        "description": "Crear una nueva cita",
+        "method": "POST",
+        "url": "http://localhost:3000/api/appointments"
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 1,
+      "position": [
+        1350,
+        400
+      ],
+      "id": "tool-create"
+    },
+    {
+      "parameters": {
+        "name": "update_appointment",
+        "description": "Actualizar una cita",
+        "method": "PATCH",
+        "url": "=http://localhost:3000/api/appointments/{{ $input.id }}"
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 1,
+      "position": [
+        1500,
+        400
+      ],
+      "id": "tool-update"
+    },
+    {
+      "parameters": {
+        "message": "={{ $json.output }}",
+        "phoneNumber": "={{ $node[\"node-code-clean\"].json.phone }}"
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        200
+      ],
+      "id": "node-wa-out"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "status-update-saas"
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        550
+      ],
+      "id": "node-wh-status"
+    },
+    {
+      "parameters": {
+        "message": "=¡Hola! Tu cita ha sido marcada como: {{ $json.body.status }}.",
+        "phoneNumber": "={{ $json.body.phone }}"
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        250,
+        550
+      ],
+      "id": "node-wa-notify"
+    }
+  ],
+  "connections": {
+    "node-wh-main": {
+      "main": [
+        [
+          {
+            "node": "node-code-clean",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "node-code-clean": {
+      "main": [
+        [
+          {
+            "node": "node-get-client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "node-get-client": {
+      "main": [
+        [
+          {
+            "node": "node-exists-if",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "node-exists-if": {
+      "main": [
+        [
+          {
+            "node": "node-agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "node-create-client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "node-create-client": {
+      "main": [
+        [
+          {
+            "node": "node-agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "node-model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "node-agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "node-memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "node-agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "tool-get": {
+      "ai_tool": [
+        [
+          {
+            "node": "node-agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "tool-create": {
+      "ai_tool": [
+        [
+          {
+            "node": "node-agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "tool-update": {
+      "ai_tool": [
+        [
+          {
+            "node": "node-agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "node-agent": {
+      "main": [
+        [
+          {
+            "node": "node-wa-out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "node-wh-status": {
+      "main": [
+        [
+          {
+            "node": "node-wa-notify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}

@@ -108,6 +108,8 @@ export default function AppointmentManager() {
   };
 
   const updateStatus = async (id: string, newStatus: Appointment['status']) => {
+    console.log("🚀 ~ updateStatus ~ newStatus:", newStatus)
+    console.log("🚀 ~ updateStatus ~ id:", id)
     try {
       // Update optimista en UI
       setAppointments(prev => prev.map(a => a.id === id ? { ...a, status: newStatus } : a));

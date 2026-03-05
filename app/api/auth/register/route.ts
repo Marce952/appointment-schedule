@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { business, services, user } = body;
+    const { business, services, user, businessHours } = body;
 
     // 1. Validaciones básicas
     if (!user.email || !user.password || !business.name) {
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
         phone: business.phone,
         email: business.email,
         website: business.website,
-        
+
         // Creamos los servicios asociados (Array del Paso 2)
         services: {
           create: services.map((s: any) => ({
@@ -33,6 +33,15 @@ export async function POST(req: Request) {
             duration: parseInt(s.duration),
             price: parseFloat(s.price),
           })),
+        },
+
+        // Creamos los horarios (Nuevo Paso)
+        businessHours: {
+          create: businessHours ? businessHours.map((h: any) => ({
+            dayOfWeek: parseInt(h.dayOfWeek),
+            startTime: h.startTime,
+            endTime: h.endTime,
+          })) : [],
         },
 
         // Creamos el usuario administrador (Paso 3)
@@ -49,6 +58,7 @@ export async function POST(req: Request) {
       include: {
         services: true,
         users: true,
+        businessHours: true,
       }
     });
 

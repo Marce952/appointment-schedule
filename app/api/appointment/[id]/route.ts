@@ -7,9 +7,10 @@ import { authOptions } from "@/lib/auth";
 // GET: Obtener una cita específica
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.businessId) {
       return errorResponse("Unauthorized", 401);
@@ -18,7 +19,7 @@ export async function GET(
 
     const appointment = await prisma.appointment.findFirst({
       where: {
-        id: parseInt(params.id),
+        id: parseInt(id),
         businessId: businessId
       },
       include: {
@@ -43,9 +44,10 @@ export async function GET(
 // PATCH: Actualizar una cita (especialmente el estado)
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.businessId) {
       return errorResponse("Unauthorized", 401);
@@ -53,7 +55,7 @@ export async function PATCH(
     const businessId = session.user.businessId;
 
     const data = await req.json();
-    const appointmentId = parseInt(params.id);
+    const appointmentId = parseInt(id);
 
     // Obtener la cita actual para verificar el estado anterior y pertenencia
     const currentAppointment = await prisma.appointment.findFirst({
@@ -112,9 +114,10 @@ export async function PATCH(
 // DELETE: Eliminar una cita
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     if (!session || !session.user?.businessId) {
       return errorResponse("Unauthorized", 401);
@@ -123,7 +126,7 @@ export async function DELETE(
 
     await prisma.appointment.delete({
       where: {
-        id: parseInt(params.id),
+        id: parseInt(id),
         businessId: businessId
       },
     });

@@ -19,12 +19,23 @@ model Business {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
-  users        User[]
-  clients      Client[]
-  services     Service[]
-  appointments Appointment[]
-  pets         Pet[]
-  loyaltyCards LoyaltyCard[]
+  users         User[]
+  clients       Client[]
+  services      Service[]
+  appointments  Appointment[]
+  pets          Pet[]
+  loyaltyCards  LoyaltyCard[]
+  businessHours BusinessHour[]
+}
+
+model BusinessHour {
+  id         Int    @id @default(autoincrement())
+  businessId Int
+  dayOfWeek  Int // 0: Domingo, 1: Lunes, ..., 6: Sábado
+  startTime  String // Formato "HH:mm"
+  endTime    String // Formato "HH:mm"
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 }
 
 enum BusinessType {

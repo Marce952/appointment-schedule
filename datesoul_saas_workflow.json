@@ -1,0 +1,318 @@
+{
+  "name": "DateSoul SaaS Appointment Manager (v6)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-webhook-datesoul-v6",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-v6",
+      "name": "WhatsApp Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": {
+          "mode": "name",
+          "value": "Client"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "phone",
+              "value": "={{ $json.body.from || $json.body.phone }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-client-v6",
+      "name": "Get Client",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        300,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "c1-v6",
+              "leftValue": "={{ $json.length }}",
+              "operator": "numberGreater",
+              "rightValue": 0
+            }
+          ]
+        }
+      },
+      "id": "exists-v6",
+      "name": "Client Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        500,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": {
+          "mode": "name",
+          "value": "Client"
+        },
+        "values": {
+          "values": [
+            {
+              "column": "name",
+              "value": "={{ $node[\"WhatsApp Webhook\"].json.body.name || 'Cliente Nuevo' }}"
+            },
+            {
+              "column": "phone",
+              "value": "={{ $node[\"WhatsApp Webhook\"].json.body.from || $node[\"WhatsApp Webhook\"].json.body.phone }}"
+            },
+            {
+              "column": "businessId",
+              "value": 1
+            },
+            {
+              "column": "email",
+              "value": "={{ ($node[\"WhatsApp Webhook\"].json.body.from || $node[\"WhatsApp Webhook\"].json.body.phone) + '@temporary.com' }}"
+            }
+          ]
+        }
+      },
+      "id": "create-client-v6",
+      "name": "Create Client",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        700,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "promptValues": {
+          "systemPrompt": "Eres un recepcionista experto. Tu prioridad es la integridad de los datos.\n\nSiempre verifica la identidad del cliente mediante su número de teléfono.\n\nAl crear una cita, asegúrate de pedir: Tipo de servicio (médico, veterinario, etc.), Fecha y Hora.\n\nSi el usuario quiere ver sus citas, muéstrale una lista numerada para que pueda elegir cuál editar o cancelar.\n\nFormato de respuesta: Breve, amable y confirmando siempre los cambios realizados.\n\nID Cliente Actual: {{ $node[\"Get Client\"].json.id || $node[\"Create Client\"].json.id }}"
+        }
+      },
+      "id": "agent-v6",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1000,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'http://localhost:3000/api/appointments?client_id=' + ($node[\"Get Client\"].json.id || $node[\"Create Client\"].json.id) }}",
+        "options": {}
+      },
+      "id": "get-tool-v6",
+      "name": "get_appointments",
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 2,
+      "position": [
+        900,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/appointments",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "client_id",
+              "value": "={{ $node[\"Get Client\"].json.id || $node[\"Create Client\"].json.id }}"
+            },
+            {
+              "name": "status",
+              "value": "PENDING"
+            }
+          ]
+        }
+      },
+      "id": "create-tool-v6",
+      "name": "create_appointment",
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 2,
+      "position": [
+        1050,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'http://localhost:3000/api/appointments/' + $input.id }}",
+        "sendBody": true
+      },
+      "id": "update-tool-v6",
+      "name": "update_appointment",
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "={{ 'http://localhost:3000/api/appointments/' + $input.id }}"
+      },
+      "id": "delete-tool-v6",
+      "name": "delete_appointment",
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 2,
+      "position": [
+        1350,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "message": "={{ $json.output }}",
+        "phoneNumber": "={{ $node[\"WhatsApp Webhook\"].json.body.from || $node[\"WhatsApp Webhook\"].json.body.phone }}"
+      },
+      "id": "whatsapp-out-v6",
+      "name": "WhatsApp Response",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1400,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "WhatsApp Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Client": {
+      "main": [
+        [
+          {
+            "node": "Client Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Client Exists?": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Client": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_appointments": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create_appointment": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update_appointment": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "delete_appointment": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
